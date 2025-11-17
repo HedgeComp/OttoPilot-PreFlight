@@ -37,9 +37,6 @@ C:\HyperPilot\Templates\   <- (used by preflight)
 C:\HyperPilot\Virtual Hard Disks\ <- (used by postflight)
 ```
 
-If you prefer other paths, update the path variables at the top of `Staging\preflight.ps1`
-and `Staging\postflight.ps1` accordingly.
-
 Basic Usage
 -----------
 Open an elevated PowerShell prompt (Run as Administrator) and run the staging
@@ -83,11 +80,6 @@ Troubleshooting
 - VHD does not mount: try mounting the VHDX manually in Disk Management to
 	verify the file integrity.
 
-Advanced
---------
-- You can parameterize paths in the scripts instead of relying on hard-coded
-	values — I can help add `-TemplatePath`, `-LocalFlightPath` and `-WhatIf`
-	parameters if you'd like.
 
 Support and Contribution
 ------------------------
@@ -126,9 +118,6 @@ Other files
 - `Staging\postflight.ps1` — mounts a completed VM image, copies CSV-formatted
 	VM hardware hash files from the VM `resources` folder to `C:\HyperPilot\PreFlight\VMHash`.
 
-If you'd like, I can append a short example to the README showing the exact
-sequence: run `preflight.bat`, boot the VM and run `hyperset.bat`/`decryptandprep.ps1`,
-then run `postflight.bat` to collect the CSV files.
 
 Typical Workflow (end-to-end)
 -----------------------------
@@ -210,6 +199,4 @@ Troubleshooting notes (quick)
 - If VHDX mount/dismount fails, ensure Hyper-V is enabled and run PowerShell
 	as Administrator.
 
-If you'd like, I can add a short checklist or printable quick-start to the
-top of the `Staging\README.md` for technicians who will perform these steps.
 

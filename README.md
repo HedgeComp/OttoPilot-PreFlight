@@ -7,10 +7,26 @@ hash (CSV) files produced inside the VM for Autopilot upload.
 
 Overview
 --------
-- `preflight.ps1` — mounts a template VHDX, copies preflight resources and
-	helper files into the image, then dismounts the image.
-- `postflight.ps1` — mounts a completed VM image, extracts VM hardware hash
-	CSV files from the VM `resources` folder and saves them locally for upload.
+- `Staging\preflight.ps1` — mounts a template VHDX, creates (or uses) the
+	`resources` folder inside the image, copies local preflight helper files and
+	`hyperset.bat` into the image, then dismounts the VHDX. This prepares images
+	for running the Autopilot collection inside the VM.
+- `Staging\postflight.ps1` — mounts a completed VM image, searches the VM's
+	`resources` folder for CSV-formatted VM hardware hash files, copies them to
+	the host (`C:\HyperPilot\PreFlight\VMHash`) and safely dismounts the VHDX.
+- `preflight.bat` / `postflight.bat` — Windows batch launchers at the repo root
+	that call the corresponding `Staging\*.ps1` scripts using PowerShell with
+	`-ExecutionPolicy Bypass` to make it easy for an administrator to run them.
+- `Staging\hyperset.bat` — small helper copied into the VM `System32` by
+	`preflight.ps1`; it sets `C:\resources` on the PATH, changes the working
+	directory to `C:\resources`, and launches PowerShell (keeps window open).
+- `Scripts\decryptandprep.ps1` — helper that runs the Autopilot community
+	script inside the VM to produce the `_autopilotinfo.csv`, disables BitLocker
+	if present, and optionally triggers `sysprep` for capture.
+
+- `hyperset.bat`
+
+- `decryptandprep.ps1`
 
 Requirements
 ------------

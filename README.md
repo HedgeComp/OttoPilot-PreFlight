@@ -1,6 +1,6 @@
 # OttoPilot-PreFlight
 
-Companion scripts to prepare and collect VM images for use with the GetRubix
+Is a collection Companion scripts to prepare and collect VM images for use with the GetRubix
 HyperPilot VM creation tool. These scripts automate mounting template VHDX
 images, copying preflight resources into the image, and collecting VM hardware
 hash (CSV) files produced inside the VM for Autopilot upload.
@@ -24,9 +24,6 @@ Overview
 	script inside the VM to produce the `_autopilotinfo.csv`, disables BitLocker
 	if present, and optionally triggers `sysprep` for capture.
 
-- `hyperset.bat`
-
-- `decryptandprep.ps1`
 
 Requirements
 ------------

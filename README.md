@@ -1,6 +1,6 @@
 # OttoPilot-PreFlight
 
-Is a collection Companion scripts to prepare and collect VM images for use with the GetRubix
+Is a collection of Companion scripts to prepare and collect VM images for use with the GetRubix
 HyperPilot VM creation tool. These scripts automate mounting template VHDX
 images, copying preflight resources into the image, and collecting VM hardware
 hash (CSV) files produced inside the VM for Autopilot upload.
@@ -79,8 +79,7 @@ Notes and Examples
 	folder into `C:\HyperPilot\PreFlight\VMHash` (the script creates this
 	folder if it does not exist).
 - The repository includes `decryptandprep.ps1` (helper) which is intended to
-	be run inside the VM during OOBE to generate VM Hash files; use `hyperset.bat`
-	in OOBE to run it.
+	be run inside the VM during OOBE to generate VM Hash files.
 
 
 Launcher Batch Files
@@ -101,15 +100,6 @@ When executed inside the HyperPilot VM it does the following:
 - Changes the working directory to `C:\resources`.
 - Launches PowerShell with `-NoExit` so the console remains open for interactive
 	steps or running the included `decryptandprep.ps1` script.
-
-Other files
------------
-- `Scripts\decryptandprep.ps1` — helper to run the Autopilot community script inside
-	the VM, collect the VM Autopilot CSV, disable BitLocker, and run `sysprep`.
-- `Staging\preflight.ps1` — mounts a template VHDX and copies preflight resources
-	(including `hyperset.bat`) into the image.
-- `Staging\postflight.ps1` — mounts a completed VM image, copies CSV-formatted
-	VM hardware hash files from the VM `resources` folder to `C:\HyperPilot\PreFlight\VMHash`.
 
 
 Typical Workflow (end-to-end)

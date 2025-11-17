@@ -171,7 +171,7 @@ Set-Location 'C:\resources'
 - After `decryptandprep.ps1` completes and the VM has been prepared (and
 	optionally shut down by sysprep),
     
-> **IMPORTANT — Do NOT skip this step**
+> ⚠️ **IMPORTANT — Do NOT skip this step**
 >
 > Before you take a snapshot or capture the VM image, REMOVE the VM's **Network
 > Adapter** (or disconnect the virtual network) to prevent the VM from
@@ -180,6 +180,8 @@ Set-Location 'C:\resources'
 >
 > After removing/disconnecting the network adapter, take a snapshot or export
 > the VM image as your completed VM image depending on your workflow.
+
+- SnapShot the VM, with disabled Network Adapter.
 
 5. Run Postflight (collect CSVs)
 

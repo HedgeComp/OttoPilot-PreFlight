@@ -1,5 +1,36 @@
 Preflight Script - Staging Prerequisites
 
+Printable Quick-Start (One Page)
+--------------------------------
+Follow these steps in order; run commands on the host as Administrator.
+
+1) Prepare files
+- Extract `PreFlight` to `C:\HyperPilot`.
+- Ensure templates are in `C:\HyperPilot\Templates` and helper scripts in `C:\HyperPilot\PreFlight\Scripts`.
+
+2) Run preflight to inject resources
+```powershell
+Set-Location 'C:\HyperPilot\PreFlight\Staging'
+.\preflight.bat
+```
+
+3) Boot VM and run inside OOBE
+- Start the VM. At OOBE press `SHIFT+F10`.
+- Run: `hyperset.bat` (located in `C:\Windows\System32`).
+- In the PowerShell window: `Set-Location 'C:\resources'` then `.\scripts\decryptandprep.ps1`.
+
+4) Capture VM (snapshot or save image)
+
+5) Run postflight to collect CSVs
+```powershell
+Set-Location 'C:\HyperPilot\PreFlight\Staging'
+.\postflight.bat
+```
+
+6) CSVs are saved to `C:\HyperPilot\PreFlight\VMHash` — upload securely to Autopilot.
+
+Notes: Keep this page printed near the test workstation. If an error occurs, check PowerShell output and ensure Hyper-V is enabled and PowerShell is running elevated.
+
 This folder contains `preflight.ps1`, a script that mounts a HyperPilot template VHDX,
 copies preflight resources into the image, and dismounts the VHDX.
 

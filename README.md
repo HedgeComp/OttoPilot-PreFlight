@@ -1,5 +1,5 @@
 # OttoPilot-PreFlight
-<img width="200" height="200" alt="OttoPreflight" src="https://github.com/user-attachments/assets/ef36e11e-fff1-42d8-960a-d3c44f21d1ef" />
+<img width="400" height="400" alt="OttoPreflight" src="https://github.com/user-attachments/assets/ef36e11e-fff1-42d8-960a-d3c44f21d1ef" />
 
 
 

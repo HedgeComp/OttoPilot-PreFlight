@@ -82,26 +82,6 @@ Notes and Examples
 	be run inside the VM during OOBE to generate VM Hash files; use `hyperset.bat`
 	in OOBE to run it.
 
-Troubleshooting
----------------
-- Permission errors: ensure PowerShell is running elevated and you have
-	permissions to mount/dismount VHDs.
-- Hyper-V not available: ensure Hyper-V and required features are enabled
-	(Turn Windows features on/off → Hyper-V).
-- No templates found: verify you placed VHDX files in the expected templates
-	folder or update the script variables to match your layout.
-- VHD does not mount: try mounting the VHDX manually in Disk Management to
-	verify the file integrity.
-
-
-Support and Contribution
-------------------------
-If you find issues or want improvements, open an issue or a PR in this
-repository with details and reproduction steps.
-
-License
--------
-See the repository `LICENSE` file for licensing terms.
 
 Launcher Batch Files
 --------------------
@@ -223,4 +203,23 @@ Troubleshooting notes (quick)
 - If VHDX mount/dismount fails, ensure Hyper-V is enabled and run PowerShell
 	as Administrator.
 
+Troubleshooting
+---------------
+- Permission errors: ensure PowerShell is running elevated and you have
+	permissions to mount/dismount VHDs.
+- Hyper-V not available: ensure Hyper-V and required features are enabled
+	(Turn Windows features on/off → Hyper-V).
+- No templates found: verify you placed VHDX files in the expected templates
+	folder or update the script variables to match your layout.
+- VHD does not mount: try mounting the VHDX manually in Disk Management to
+	verify the file integrity.
 
+
+Support and Contribution
+------------------------
+If you find issues or want improvements, open an issue or a PR in this
+repository with details and reproduction steps.
+
+License
+-------
+See the repository `LICENSE` file for licensing terms.

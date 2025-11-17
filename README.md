@@ -11,15 +11,19 @@ Overview
 	`resources` folder inside the image, copies local preflight helper files and
 	`hyperset.bat` into the image, then dismounts the VHDX. This prepares images
 	for running the Autopilot collection inside the VM.
+
 - `Staging\postflight.ps1` — mounts a completed VM image, searches the VM's
 	`resources` folder for CSV-formatted VM hardware hash files, copies them to
 	the host (`C:\HyperPilot\PreFlight\VMHash`) and safely dismounts the VHDX.
+
 - `preflight.bat` / `postflight.bat` — Windows batch launchers at the repo root
 	that call the corresponding `Staging\*.ps1` scripts using PowerShell with
 	`-ExecutionPolicy Bypass` to make it easy for an administrator to run them.
+
 - `Staging\hyperset.bat` — small helper copied into the VM `System32` by
 	`preflight.ps1`; it sets `C:\resources` on the PATH, changes the working
 	directory to `C:\resources`, and launches PowerShell (keeps window open).
+
 - `Scripts\decryptandprep.ps1` — helper that runs the Autopilot community
 	script inside the VM to produce the `_autopilotinfo.csv`, disables BitLocker
 	if present, and optionally triggers `sysprep` for capture.
@@ -102,7 +106,7 @@ When executed inside the HyperPilot VM it does the following:
 	steps or running the included `decryptandprep.ps1` script.
 
 
-Typical Workflow (end-to-end)
+Typical Workflow for Preflight
 -----------------------------
 Follow these steps to prepare a template image, generate VM hash files inside
 the VM, and collect them for Autopilot:
@@ -138,7 +142,10 @@ Set-Location 'C:\HyperPilot\PreFlight'
 	- Adds `C:\resources` to the `PATH`.
 	- Changes directory to `C:\resources`.
 	- Launches PowerShell with `-NoExit` so you can interact with the session.
-- Inside the launched PowerShell session run the included `decryptandprep.ps1`:
+
+- Test and troubleshoot your scripts or prep the VM for repeated Autopilot testing.
+
+-  Inside the launched PowerShell session run the included `decryptandprep.ps1`:
 
 ```powershell
 Set-Location 'C:\resources'
@@ -183,15 +190,6 @@ Set-Location 'C:\HyperPilot\PreFlight'
 - The CSV files under `C:\HyperPilot\PreFlight\VMHash` can be uploaded to
 	Microsoft Autopilot or processed by your management tooling. Keep them
 	secure as they contain device-identifying information.
-
-Troubleshooting notes (quick)
-- If `hyperset.bat` is not present inside the VM, re-run `preflight.bat` and
-	inspect `Staging\preflight.ps1` output for copy errors.
-- If CSV files are missing after `postflight.ps1`, mount the VHDX manually
-	using Disk Management to inspect `C:\resources` in the image and verify
-	the CSV path.
-- If VHDX mount/dismount fails, ensure Hyper-V is enabled and run PowerShell
-	as Administrator.
 
 Troubleshooting
 ---------------

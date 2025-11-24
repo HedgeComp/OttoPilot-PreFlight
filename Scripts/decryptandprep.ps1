@@ -1,5 +1,54 @@
 [CmdletBinding()]
 
+<#
+.SYNOPSIS
+    Runs the Autopilot community collection inside a VM, saves the Autopilot
+    CSV to `C:\resources`, disables BitLocker if present, and optionally
+    syspreps the machine for capture.
+
+.DESCRIPTION
+    This helper script is intended to be executed inside the HyperPilot VM
+    (for example after running `hyperset.bat` during OOBE). It ensures the
+    NuGet provider is available, installs the Autopilot community script if
+    necessary, executes it to produce the `_autopilotinfo.csv` file, disables
+    BitLocker on the system volume if required, and then optionally runs
+    `sysprep` to generalize and shutdown the VM for capture.
+
+.PARAMETER csvPath
+    The path where the Autopilot CSV will be written. Defaults to
+    `C:\resources\<COMPUTERNAME>_autopilotinfo.csv`.
+
+.PARAMETER online
+    If `$true`, the Autopilot community script runs in online mode and may
+    upload directly instead of saving a CSV. Default is `$false`.
+
+.PARAMETER groupTag
+    Optional group tag passed to the Autopilot community script to assign the
+    device to a group during collection.
+
+.EXAMPLE
+    # Run locally inside the VM and save CSV to default path
+    .\decryptandprep.ps1
+
+.EXAMPLE
+    # Run and upload online
+    .\decryptandprep.ps1 -online $true
+
+.NOTES
+    - Requires PowerShell running as Administrator inside the VM.
+    - The script expects to be run where `C:\resources` is accessible.
+    - The Autopilot community script `get-windowsautopilotinfocommunity` is
+      installed from PSGallery if not present.
+    - The script disables BitLocker and waits for decryption; ensure you have
+      appropriate permissions and understand the security implications.
+
+.AUTHOR
+    Scott McDonnell
+
+.REVISION
+    1.0  2025-11-18  Added comment-based help
+#>
+
 param(
     [string]$csvPath = "C:\resources\$($env:COMPUTERNAME)_autopilotinfo.csv",
     [bool]$online = $false,

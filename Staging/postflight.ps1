@@ -56,7 +56,7 @@ $index = 1
 $vmTable = foreach ($vm in $AreWeHyped) {
     [pscustomobject]@{
         Number = $index
-        Name   = $vm.Name
+        'HyperPilot-VMName'   = $vm.Name
     }
     $index++
 }

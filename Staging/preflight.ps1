@@ -119,7 +119,7 @@ if (Test-Path -Path "$LocalFlightPath\scripts") {
             Copy-Item -Path $filePath -Destination $VMSystem32 -Force -ErrorAction Stop
         }
         catch {
-            Write-Warning "Failed to copy $fileName to $VMSystem32: $($_.Exception.Message)"
+            Write-Warning "Failed to copy $fileName to ${VMSystem32}: $($_.Exception.Message)"
         }
     } else {
         Write-Host "The file '$fileName' was not found at $filePath."
@@ -131,7 +131,7 @@ if (Test-Path -Path "$LocalFlightPath\scripts") {
         Write-Host "Scripts File copied successfully to $DestinationPath"
     }
     catch {
-        Write-Warning "Failed to copy scripts to $DestinationPath: $($_.Exception.Message)"
+        Write-Warning "Failed to copy scripts to ${DestinationPath}: $($_.Exception.Message)"
     }
 
 } else {

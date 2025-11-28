@@ -33,43 +33,60 @@
 
 .REVISION
     1.0  2025-11-17  Initial comment-based help added
-#>
 
+ #>
 #Requires -RunAsAdministrator
 
-Write-Host "Looking for HYPER PILOT Virtual Disks..."
-$VHDTemplateFolder = "C:\HyperPilot\Virtual Hard Disks"
-#Check if the VHD Template folder exists
-if (Test-Path -Path $VHDTemplateFolder) {
+# Define your Local path to store the hash file
+$LocalPath = "C:\HyperPilot\PreFlight\VMHash"
 
-# Ensure we have an array and check for zero templates
-$VHDTemplates = @(Get-ChildItem -Path $VHDTemplateFolder -File)
+Write-Host "Looking for HyperPilot Virtual Machines..."
 
-# Check to see if any VM Disks exist
-if ($VHDTemplates.Count -eq 0) {
-    Write-Warning "No HyperPilot VHDX templates found in: $VHDTemplateFolder"
-    Write-Warning "Check that you've created at least one HyperPilot VM"
+$AreWeHyped = Get-VM | Where-Object {
+    $_.ConfigurationLocation -like "C:\hyperpilot*"
+}
+
+if (-not $AreWeHyped) {
+    Write-Warning "No HyperPilot VMs detected in Hyper-V. Please create a HyperPilot VM and try again."
     exit 1
 }
-#If more than one VHDX template is found, prompt user to select one
-elseif ($VHDTemplates.Count -gt 1)
-{
-Write-Host "Select a file from the list below:"
 
- do {
-        for ($i = 1; $i -le $VHDTemplates.Count; $i++) {
-        Write-Host "[$i] Windows 11 $($VHDTemplates[$i - 1].BaseName)"
-        }
-         $selection = Read-Host "`nEnter the number of the file you want"
-    } until ($selection -match '^\d+$'-and [int]$selection -ge 1 -and [int]$selection -le $VHDTemplates.Count)
+# Build a numbered table
+$index = 1
+$vmTable = foreach ($vm in $AreWeHyped) {
+    [pscustomobject]@{
+        Number = $index
+        Name   = $vm.Name
+    }
+    $index++
+}
 
-    $index = [int]$selection - 1
-    $VHDPath = $VHDTemplates[$index].FullName
+$vmTable | Format-Table -AutoSize
+
+# Ask user to pick one
+$selection = Read-Host "`nEnter the number of the VM you want to use"
+
+if (-not [int]::TryParse($selection, [ref]$null) -or
+    [int]$selection -lt 1 -or
+    [int]$selection -gt $AreWeHyped.Count) {
+
+    Write-Warning "Invalid selection. Exiting."
+    exit 1
 }
-else {
-    Write-Host "Found VM Template $($VHDTemplates[0].BaseName) "
-    $VHDPath = $VHDTemplates[0].FullName
-}
+
+$SelectedVM = $AreWeHyped[[int]$selection - 1].Name
+
+Write-Host ""
+Write-Host "You selected VM: $($SelectedVM)"
+
+Write-Host "Looking for HYPER PILOT Virtual Disks..."
+$VHDPath = Get-VMHardDiskDrive -VMName $SelectedVM | Select-Object -ExpandProperty Path
+
+#TemplateFolder = "C:\HyperPilot\Virtual Hard Disks"
+#Check if the VHDX returned exists
+if (Test-Path -Path $VHDPath) {
+
+
 #try to mount the selected VHDX templates
 try {
 
@@ -90,10 +107,7 @@ catch{
 
 }
 
-# Define your Local path to store the hash file
-$LocalPath = "C:\HyperPilot\PreFlight\VMHash"
 
-# Define the destination folder path using the $DriveLetter variable
 # (Assuming $DriveLetter is set to the correct drive letter, like "E")
 $VMResourcesPath = "$($DriveLetter):\resources"
 
@@ -134,7 +148,7 @@ if ($csvFiles -and $csvFiles.Count -gt 0) {
         Write-Host "CSV files copied to $LocalPath"
     }
     catch {
-        Write-Warning "Failed to copy CSV files from $VMResourcesPath to $LocalPath: $($_.Exception.Message)"
+        Write-Warning "Failed to copy CSV files from $VMResourcesPath to $LocalPath : $($_.Exception.Message)"
     }
 }
 else {
@@ -153,11 +167,46 @@ if ($mounted -and $VHDPath) {
     }
 }
 
+
+#check for vm network adapter and remove it to allow reuse of the adapter for autopilot testing
+$nicstatus = Get-VMNetworkAdapter -VMName $SelectedVM -ErrorAction SilentlyContinue
+if (! $nicstatus){Write-Host "No Network Adapter found on VM. skipping removal step."}
+else{
+    Remove-VMNetworkAdapter -VMName $SelectedVM -Confirm:$false
+    Write-Host "Network Adapter Removed from VM to allow reuse for Autopilot Testing."
+}
+
+#start the VM to create a checkpoint
+Start-VM -Name $SelectedVM
+ do {
+            $HyperVM = Get-VM -Name $SelectedVM
+            Start-Sleep -Seconds 90  ### Wait longer to ensure VM is fully started and back at OOBE. You can adjust this time as needed for your environment.
+        } while ($HyperVM.State -ne 'Running')
+Write-Host "VM ${SelectedVm.Name} is now running."
+
+#try to create a checkpoint at startup without Netowrk Adapter
+try {
+    Checkpoint-VM -Name $SelectedVM -SnapshotName "PostFlight-Ready for Autopilot Testing" -ErrorAction Stop
+    Write-Host "Checkpoint 'PostFlight-Ready for Autopilot Testing' created for VM $SelectedVM."
+}
+catch {
+    Write-Warning   "Checkpoint creation failed for VM ${SelectedVM}: $($_.Exception.Message)"
+    Write-Warning   "You can create a checkpoint manually from Hyper-V Manager after the VM is shut down."
+    }
+
+Stop-VM -Name $SelectedVM -Force
+ do {
+            $HyperVM = Get-VM -Name $SelectedVM
+            Start-Sleep -Seconds 5
+        } while ($HyperVM.State -ne 'Off')
+
+Write-Host "VM $SelectedVM is now stopped."       
+
 Write-Host "Congratulations — your Post-Flight Checks are complete" -ForegroundColor Green
 }
 
 #Check Failure Message. Check the HYPERPilot Installation Folders for VM Disks. 
 else{
 Write-Warning "HyperPilot VHDX Disks not found at: $VHDTemplates "
-Write-Warning "Check that you've created one HyperPilot"
+Write-Warning "Check that you've created atleast one HyperPilot VM"
 }

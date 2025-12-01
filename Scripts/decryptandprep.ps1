@@ -133,7 +133,7 @@ else
     $bitlockerStatus = Get-BitLockerVolume -MountPoint "C:" #| Out-Null
     $percentage = $bitlockerStatus.EncryptionPercentage
     Write-Host ("Current decryption progress: {0}%" -f $percentage)
-    Start-Sleep -Seconds 10
+    Start-Sleep -Seconds 5
     }
     until ($bitlockerStatus.VolumeStatus -eq 'FullyDecrypted')
 
@@ -150,7 +150,20 @@ if (Test-Path $sysprepPath) {
     Write-Host "Sysprep.exe not found at expected path: $sysprepPath"
 }
 
-Write-Host "`n=====   WARNING  =====" -ForegroundColor Black -BackgroundColor Yellow
-Write-Host "`nTo Reuse the VM for Autopilot Testing. Remember to Remove the Network Adapter First!!   " -ForegroundColor Black -BackgroundColor Yellow
-Write-Host "Power On the VM and then take a snapshot at OOBE. This will avoide the Autopilot Profile Cache" -ForegroundColor Black -BackgroundColor Yellow
-Write-Host "See Micheal Niehaus blog for more: https://oofhours.com/2023/08/23/windows-autopilot-testing-with-vms/" -ForegroundColor Black -BackgroundColor Yellow
+Write-Host ""
+Write-Host "[!] AUTOPILOT VM WARNING" -ForegroundColor Yellow
+Write-Host ""
+
+Write-Host "[i] To reuse this VM for Autopilot testing:" -ForegroundColor Cyan
+Write-Host "   - Remove the network adapter *before* reusing the VM." -ForegroundColor Cyan
+Write-Host "   - Power on the VM and take a checkpoint at OOBE" -ForegroundColor Cyan
+Write-Host "     to avoid the Autopilot profile cache." -ForegroundColor Cyan
+
+Write-Host ""
+Write-Host "[i] To automate this process:" -ForegroundColor Green
+Write-Host "   - Run 'postflight.bat' after the VM has shut down." -ForegroundColor Green
+Write-Host "   - It will remove the adapter and start the VM again." -ForegroundColor Green
+
+Write-Host ""
+Write-Host "[i] More info (Michael Niehaus' blog):" -ForegroundColor DarkGray
+Write-Host "   https://oofhours.com/2023/08/23/windows-autopilot-testing-with-vms" -ForegroundColor DarkGray

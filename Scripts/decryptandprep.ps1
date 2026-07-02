@@ -39,8 +39,7 @@
     - The script expects to be run where `C:\resources` is accessible.
     - The Autopilot community script `get-windowsautopilotinfocommunity` is
       installed from PSGallery if not present.
-    - The script disables BitLocker and waits for decryption; ensure you have
-      appropriate permissions and understand the security implications.
+    - The script disables BitLocker and waits for decryption.
 
 .AUTHOR
     Scott McDonnell

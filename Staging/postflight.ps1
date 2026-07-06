@@ -39,18 +39,39 @@
 
 # Define your Local path to store the hash file
 $LocalPath = "C:\HyperPilot\PreFlight\VMHash"
+# Define your Local path to store the hash file
+$LocalPath = "C:\HyperPilot\PreFlight\VMHash"
 
 Write-Host "Looking for HyperPilot Virtual Machines..."
+$HyperConfigPath = Join-Path -Path $env:APPDATA -ChildPath "HYPERPILOT\config.json"
 
-$AreWeHyped = Get-VM | Where-Object {
-    $_.ConfigurationLocation -like "C:\hyperpilot*"
-}
-
-if (-not $AreWeHyped) {
-    Write-Warning "No HyperPilot VMs detected in Hyper-V. Please create a HyperPilot VM and try again."
+if (-not (Test-Path -Path $HyperConfigPath)) {
+    Write-Warning "Config file not found at: $HyperConfigPath"
     exit 1
 }
 
+try {
+    $HyperConfig = Get-Content -Path $HyperConfigPath -Raw | ConvertFrom-Json
+}
+catch {
+    Write-Warning "Failed to parse config.json. Check that it contains valid JSON."
+    Write-Warning $_.Exception.Message
+    exit 1
+}
+
+if (-not $HyperConfig.PSObject.Properties.Name -contains "VMFolderPath" -or [string]::IsNullOrWhiteSpace($HyperConfig.VMFolderPath)) {
+    Write-Warning "VMFolderPath not found or empty in: $HyperConfigPath"
+    exit 1
+}
+
+# Find the VMFolderPath from the config.json file
+$VMFolderPath = $HyperConfig.VMFolderPath.TrimEnd('\')
+$VMFolderConfiguration = $null
+
+$AreWeHyped = Get-VM | Where-Object {
+    $_.ConfigurationLocation -and
+    $_.ConfigurationLocation.StartsWith($VMFolderPath, [System.StringComparison]::OrdinalIgnoreCase)
+}
 # Build a numbered table
 $index = 1
 $vmTable = foreach ($vm in $AreWeHyped) {

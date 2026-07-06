@@ -42,8 +42,8 @@ Requirements
 
 Installation
 ------------
-1. Download the ZIP of this repository and extract the `PreFlight` folder to
-	 `C:\HyperPilot` so your structure looks like:
+1. Download the ZIP of this repository and extract the `PreFlight` folder to your 
+	 `HyperPilot` directory so your structure looks like:
 
 ```
 C:\HyperPilot\PreFlight\Staging\preflight.ps1

@@ -46,6 +46,7 @@
 
 .REVISION
     1.0  2025-11-18  Added comment-based help
+	1.2	 2026-07-6	Check for encryption on disk and remove it before prep.
 #>
 
 param(
@@ -129,10 +130,10 @@ else
     # Wait until decryption is complete
     Write-Host "Waiting for BitLocker decryption to complete..."
     do {
-    $bitlockerStatus = Get-BitLockerVolume -MountPoint "C:" #| Out-Null
-    $percentage = $bitlockerStatus.EncryptionPercentage
-    Write-Host ("Current decryption progress: {0}%" -f $percentage)
-    Start-Sleep -Seconds 5
+    	$bitlockerStatus = Get-BitLockerVolume -MountPoint "C:" #| Out-Null
+    	$percentage = $bitlockerStatus.EncryptionPercentage
+    	Write-Host ("Current decryption progress: {0}%" -f $percentage)
+    	Start-Sleep -Seconds 2
     }
     until ($bitlockerStatus.VolumeStatus -eq 'FullyDecrypted')
 

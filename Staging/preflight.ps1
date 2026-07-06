@@ -1,3 +1,41 @@
+<#
+.SYNOPSIS
+    Prepares a HyperPilot Template Disk for Autopilot enrollment by adding user defined scripts and files to the mounted VHDX image.
+
+.DESCRIPTION
+    This script searches HyperPilot VMDX Templates from a path defined
+    in the HyperPilot config. It will then mount the VHDX disk for the selected image, and copies necessary files to the mounted image
+    It will also copy any user defined scripts and files to the mounted image found in the `.\HyperPilot\PreFlight\Scripts` directory,
+    to allow for the tools to be availbe on all future VMs crated by the HyperPilot Template Disk. Once the files are copied, the VHDX
+    will be dismounted and ready for use for cloning and creating new VMs in HyperPilot for Autopilot testing.
+
+.NOTES
+    - Requires HYPERPILOT by Getrubix.com https://hyperpilot.getrubix.com/
+    - Hyper-V must be enabled and the current user must have permission to mount VHDs.
+    - Requires running PowerShell as Administrator (see `#Requires -RunAsAdministrator`).
+    - Tested on Windows 11 with PowerShell 5.1+ and Hyper-V.
+    - Preflight needs to be run anytime you update your Scripts or a new Template is pushed to the '.\HyperPilot\Templates' folder. 
+    
+
+.BONUS 
+    To Create the VM Hash files quickly, you can run the decryptandprep.ps1 script included with Preflight.
+    Started the VM and when it loads in OOBE simply press SHIFT+F10 to open a command prompt.
+    Then type "hyperset.bat"
+    run .\scripts\decryptandprep.ps1 will run and prepare the VM for Autopilot and create the VM Hash files as a csv file by default.
+    Then run the postflight.ps1 script to collect the VM Hash and prepare the VM for Autopilot testing.
+   
+.EXAMPLE
+    Start an elevated PowerShell session and run:
+        .\preflight.ps1
+
+.AUTHOR
+    Scott McDonnell
+
+.REVISION
+    1.0  2025-11-17  Initial comment
+    2.0  2026-07-06  Added logging and error handling for better user experience. Dynamically finds the HyperPilot VM folder path from config.json and prompts user to select a VM to process. 
+         
+ #>
 #Requires -RunAsAdministrator
 
 # log function
@@ -48,21 +86,28 @@ if (Test-Path -Path $VHDTemplateFolder) {
     $VHDTemplates = Get-ChildItem -Path $VHDTemplateFolder -File -Filter *.vhdx
 
     if ($VHDTemplates.Count -gt 1) {
-        Write-Host "Multiple HyperPilot VHDX templates found. `n" -ForegroundColor Green
+        Write-Host "Multiple HyperPilot VHDX templates found." -ForegroundColor Green
+
+        $index = 1
+        $vmTable = foreach ($template in $VHDTemplates) {
+            [pscustomobject]@{
+                Number = $index
+                'HyperPilot-Template' = $template.BaseName
+            }
+            $index++
+        }
 
         do {
-            for ($i = 1; $i -le $VHDTemplates.Count; $i++) {
-                Write-Host "[$i] Windows 11 $($VHDTemplates[$i - 1].BaseName)"
-            }
+            $vmTable | Format-Table -AutoSize | Out-Host
 
             # Prompt in yellow, then read input
-            Write-Host -NoNewline -ForegroundColor Yellow "`nEnter the number of the Template you want to update: "
+            Write-Host -NoNewline -ForegroundColor Yellow "Enter the number of the Template you want to update: "
             $selection = Read-Host
-        } until ($selection -match '^\d+$' -and [int]$selection -ge 1 -and [int]$selection -le $VHDTemplates.Count)
+        } until ($selection -match '^\d+$' -and [int]$selection -ge 1 -and [int]$selection -le $vmTable.Count)
 
-        $index = [int]$selection - 1
-        $VHDPath = $VHDTemplates[$index].FullName
-        log "Selected VM Template: $($VHDTemplates[$index].BaseName)"
+        $selectedTemplate = $vmTable | Where-Object { $_.Number -eq [int]$selection } | Select-Object -First 1
+        $VHDPath = $VHDTemplates[([int]$selection - 1)].FullName
+        log "Selected VM Template: $($selectedTemplate.'HyperPilot-VMName')"
     }
     elseif ($VHDTemplates.Count -eq 1) {
         Log "Found VM Template $($VHDTemplates[0].BaseName)"

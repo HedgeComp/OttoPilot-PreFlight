@@ -44,7 +44,8 @@ $VHDTemplateFolder = Join-Path -Path $VMFolderPath -ChildPath "Templates"
 Log "Looking for HYPER PILOT Template Disks in: $VHDTemplateFolder"
 
 if (Test-Path -Path $VHDTemplateFolder) {
-    $VHDTemplates = Get-ChildItem -Path $VHDTemplateFolder -File
+    # Only consider .vhdx template files
+    $VHDTemplates = Get-ChildItem -Path $VHDTemplateFolder -File -Filter *.vhdx
 
     if ($VHDTemplates.Count -gt 1) {
         Write-Host "Multiple HyperPilot VHDX templates found. `n" -ForegroundColor Green
@@ -63,9 +64,13 @@ if (Test-Path -Path $VHDTemplateFolder) {
         $VHDPath = $VHDTemplates[$index].FullName
         log "Selected VM Template: $($VHDTemplates[$index].BaseName)"
     }
-    else {
+    elseif ($VHDTemplates.Count -eq 1) {
         Log "Found VM Template $($VHDTemplates[0].BaseName)"
         $VHDPath = $VHDTemplates[0].FullName
+    }
+    else {
+        Write-Warning "No HyperPilot VHDX templates found in: $VHDTemplateFolder"
+        exit 1
     }
 
     try {
@@ -126,8 +131,8 @@ if (Test-Path -Path $VHDTemplateFolder) {
     Log "HyperPilot Template VHDX Dismounted"
     Log "Congradulations your Pre-Flight Checks are complete!" #-ForegroundColor Green
     Log "You can now engage your Otto-Pilot"
-    Log "       __|__ "
-    log "--@--@--(_)--@--@--"
+    Log "          __|__ "
+    log "   --@--@--(_)--@--@--`n"
 }
 else {
     Write-Warning "HYPER PILOT VHDX Templates not found at: $VHDTemplateFolder"

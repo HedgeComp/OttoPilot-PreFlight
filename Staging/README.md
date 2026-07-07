@@ -5,8 +5,8 @@ Printable Quick-Start (One Page)
 Follow these steps in order; run commands on the host as Administrator.
 
 1) Prepare files
-- Extract `PreFlight` to `C:\HyperPilot`.
-- Ensure templates are in `C:\HyperPilot\Templates` and helper scripts in `C:\HyperPilot\PreFlight\Scripts`.
+- Extract `PreFlight` to your `HyperPilot` folder.
+- Example Templates in  `C:\HyperPilot\Templates` and helper scripts in `C:\HyperPilot\PreFlight\Scripts`.
 
 2) Run preflight to inject resources
 ```powershell
@@ -37,8 +37,8 @@ copies preflight resources into the image, and dismounts the VHDX.
 Prerequisites
 - Run PowerShell as Administrator.
 - Hyper-V must be enabled on the host.
-- The template VHDX files must be located in: `C:\HYPERPILOT\Templates`.
-- The local preflight resources must be in: `C:\HYPERPILOT\PreFlight`.
+- The template VHDX will be found via config.json
+- The local preflight resources Like 'Scripts' folder must be in: `.\HYPERPILOT\PreFlight`.
 
 Usage
 1. Open an elevated PowerShell prompt.

@@ -25,34 +25,11 @@ Set-Location 'C:\HyperPilot\PreFlight\Staging'
 - When completed testing: `Set-Location 'C:\resources'` then `.\scripts\decryptandprep.ps1`.
 - VM will decrypt and runn sysprep.
 
- 
-
-
-Notes: Keep this page printed near the test workstation. If an error occurs, check PowerShell output and ensure Hyper-V is enabled and PowerShell is running elevated.
-
-This folder contains `preflight.ps1`, a script that mounts a HyperPilot template VHDX,
-copies preflight resources into the image, and dismounts the VHDX.
-
 Prerequisites
 - Run PowerShell as Administrator.
-- Hyper-V must be enabled on the host.
+- HyperPilot must be installed.
 - The template VHDX will be found via config.json
 - The local preflight resources Like 'Scripts' folder must be in: `.\HYPERPILOT\PreFlight`.
-
-Usage
-1. Open an elevated PowerShell prompt.
-2. Change to the `Staging` folder:
-
-```powershell
-Set-Location 'Staging'
-```
-
-3. Run the script:
-
-```powershell
-.\preflight.ps1
-```
-
 
 
 ## Postflight Script (collect VM Hashes)
@@ -60,7 +37,7 @@ Set-Location 'Staging'
 This folder also contains `postflight.ps1`, which mounts a HyperPilot VM template
 VHDX, locates CSV-formatted VM hardware hash files in the VM's `resources` folder,
 and copies them to the host under `C:\HyperPilot\PreFlight\VMHash` for upload to
-Autopilot or other management services.
+Autopilot.
 
 Prerequisites (postflight)
 - Run PowerShell as Administrator.
@@ -90,19 +67,6 @@ Set-Location 'C:\HyperPilot\PreFlight\Staging'
   
 5) To repeat Autopilot testing, resotre the Snapshot and repeat steps '3' and '4'
 
-Usage (postflight)
-1. Open an elevated PowerShell prompt.
-2. Change to the `Staging` folder:
-
-```powershell
-Set-Location 'Staging'
-```
-
-3. Run the script:
-
-```powershell
-.\postflight.ps1
-```
 
 Notes (postflight)
 - The script will prompt to select a VHDX if multiple templates are present.

@@ -1,28 +1,31 @@
 <#
 .SYNOPSIS
-    Mounts a HyperPilot Created VM, collects VM hardware hash CSV file
-    from the mounted image and copies them to a local folder for Autopilot upload.
+    Searches for HyperPilot-created virtual machines, mounts a selected VM
+    image, collects the Autopilot hardware hash CSV from the mounted image,
+    removes the network adapter from the VM, and creates a checkpoint for Autopilot testing.
 
 .DESCRIPTION
-    This script searches `C:\HyperPilot\Virtual Hard Disks` for a VHDX template,
-    mounts the selected image, locates VM Virtual MAchines Hash saved as a CSV file under the VM's `resources`
-    C;\Resource folder. It then copies those files to the host's `C:\HyperPilot\PreFlight\VMHash`
-    directory, then dismounts the VHDX.
+    This script searches HyperPilot Virtual Hard Disks from a path defined
+    in the HyperPilot config. It will then mount the VHDX disk for the selected image and
+    locates the VM's Autopilot hardware hash CSV file under the VM's `resources`
+    (Resource) folder if it exists. The file wll be copied to the host's
+    `.\HyperPilot\PreFlight\VMHash` directory, and then dismounts the VHDX.
+    If a network adapter is found on the VM, it will be removed to allow reuse for Autopilot testing.
+    Finally, the VM will be started and a checkpoint will be created at  OOBE for the VM to allow easy restoration to a clean state.
 
 .NOTES
     - Requires HYPERPILOT by Getrubix.com https://hyperpilot.getrubix.com/
-    - Requires the VM to have already run running Get-AutopilotCommunittyinfo.ps1 to create VM Hash to Autopilot
     - Hyper-V must be enabled and the current user must have permission to mount VHDs.
     - Requires running PowerShell as Administrator (see `#Requires -RunAsAdministrator`).
     - Tested on Windows 11 with PowerShell 5.1+ and Hyper-V.
-    - File: `Staging\postflight.ps1`
+    - After Starting the VM from the Snapshot. You must re-enable the network adapter to allow the VM to connect to the network for Autopilot testing.
 
 .BONUS 
     To Create the VM Hash files quickly, you can run the decryptandprep.ps1 script included with Preflight.
-    When the VM loads in OOBE simply press SHIFT+F10 to open a command prompt.
+    Started the VM and when it loads in OOBE simply press SHIFT+F10 to open a command prompt.
     Then type "hyperset.bat"
-    run .\scripts\decryptandprep.ps1 will run and prepare the VM for Autopilot and create the VM Hash files.
-    Then run this script.
+    run .\scripts\decryptandprep.ps1 will run and prepare the VM for Autopilot and create the VM Hash files as a csv file by default.
+    Then run the this script to collect the VM Hash and prepare the VM for Autopilot testing.
    
 .EXAMPLE
     Start an elevated PowerShell session and run:
@@ -32,25 +35,63 @@
     Scott McDonnell
 
 .REVISION
-    1.0  2025-11-17  Initial comment-based help added
+    1.0  2025-11-17  prompts user to select a VM to process. Pulls Hash CSV and removes network adapter from VM for Autopilot testing.
+    2.0  2026-07-06  Added logging and error handling. Now Dynamically finds HyperPilot VM folder from config.json. Added checks for existing checkpoints.
 
  #>
 #Requires -RunAsAdministrator
 
-# Define your Local path to store the hash file
-$LocalPath = "C:\HyperPilot\PreFlight\VMHash"
-
-Write-Host "Looking for HyperPilot Virtual Machines..."
-
-$AreWeHyped = Get-VM | Where-Object {
-    $_.ConfigurationLocation -like "C:\hyperpilot*"
+# log function
+function log()
+{
+    Param(
+        [Parameter(Mandatory=$True)]
+        [string]$message
+    )
+    $date = Get-Date -Format "yyyy-MM-dd HH:mm:ss tt"
+    Write-Output "$date - $message"
 }
 
-if (-not $AreWeHyped) {
-    Write-Warning "No HyperPilot VMs detected in Hyper-V. Please create a HyperPilot VM and try again."
+
+# Local path will be derived from the HyperPilot VM folder path later
+$vmHashFolder = $null
+
+Log "Looking for HyperPilot Created Virtual Machines..."
+$HyperConfigPath = Join-Path -Path $env:APPDATA -ChildPath "HYPERPILOT\config.json"
+
+if (-not (Test-Path -Path $HyperConfigPath)) {
+    Write-Warning "Config file not found at: $HyperConfigPath"
     exit 1
 }
 
+try {
+    $HyperConfig = Get-Content -Path $HyperConfigPath -Raw | ConvertFrom-Json
+}
+catch {
+    Write-Warning "Failed to parse config.json. Check that it contains valid JSON."
+    Write-Warning $_.Exception.Message
+    exit 1
+}
+
+if (-not $HyperConfig.PSObject.Properties.Name -contains "VMFolderPath" -or [string]::IsNullOrWhiteSpace($HyperConfig.VMFolderPath)) {
+    Write-Warning "VMFolderPath not found or empty in: $HyperConfigPath"
+    exit 1
+}
+
+# Find the VMFolderPath from the config.json file
+$VMFolderPath = $HyperConfig.VMFolderPath.TrimEnd('\')
+$vmHashFolder = Join-Path -Path $VMFolderPath -ChildPath "PreFlight\VMHash"
+$VMFolderConfiguration = $null
+
+$AreWeHyped = Get-VM | Where-Object {
+    $_.ConfigurationLocation -and
+    $_.ConfigurationLocation.StartsWith($VMFolderPath, [System.StringComparison]::OrdinalIgnoreCase)
+}
+# Check if any VMs were found
+if (-not $AreWeHyped -or $AreWeHyped.Count -eq 0) {
+    Write-Warning "No HyperPilot VMs found under: $VMFolderPath"
+    exit 1
+}
 # Build a numbered table
 $index = 1
 $vmTable = foreach ($vm in $AreWeHyped) {
@@ -64,7 +105,8 @@ $vmTable = foreach ($vm in $AreWeHyped) {
 $vmTable | Format-Table -AutoSize
 
 # Ask user to pick one
-$selection = Read-Host "`nEnter the number of the VM you want to use"
+Write-Host  -NoNewline -ForegroundColor Yellow "Enter the number of the HyperPilot VM to update: "
+$selection = Read-Host
 
 if (-not [int]::TryParse($selection, [ref]$null) -or
     [int]$selection -lt 1 -or
@@ -77,9 +119,9 @@ if (-not [int]::TryParse($selection, [ref]$null) -or
 $SelectedVM = $AreWeHyped[[int]$selection - 1].Name
 
 Write-Host ""
-Write-Host "You selected VM: $($SelectedVM)"
+Log "You selected VM: $($SelectedVM)"
 
-Write-Host "Looking for HYPER PILOT Virtual Disks..."
+Log "Looking for HYPER PILOT Virtual Disks..."
 $VHDPath = Get-VMHardDiskDrive -VMName $SelectedVM | Select-Object -ExpandProperty Path
 
 #TemplateFolder = "C:\HyperPilot\Virtual Hard Disks"
@@ -98,7 +140,7 @@ $DriveLetter = (
             Select-Object -ExpandProperty DriveLetter -ErrorAction Stop
         )
 
-Write-Host "VHDX mounted to drive letter: $DriveLetter"
+Log "VHDX mounted to drive letter: $DriveLetter"
     $mounted = $true
 }
 catch{
@@ -112,14 +154,14 @@ catch{
 $VMResourcesPath = "$($DriveLetter):\resources"
 
 #Check if the local VMHash folder path exists
- if (!(Test-Path -Path $LocalPath)) {
+ if (!(Test-Path -Path $vmHashFolder)) {
     Write-Host "Local VMHash Folder Not found: Creating."
-    New-Item -Path $LocalPath -ItemType Directory | Out-Null
+    New-Item -Path $vmHashFolder -ItemType Directory | Out-Null
 
 }
 
 else{
-Write-Host "Local VMHash Folder found: $LocalPath"
+Log "Local VMHash Folder found: $vmHashFolder"
 }
   
 # Check if the Resource directory exists on VMDK
@@ -128,7 +170,7 @@ if (!(Test-Path -Path $VMResourcesPath)) {
     if ($mounted -and $VHDPath) {
         try {
             Dismount-VHD -Path $VHDPath -ErrorAction Stop
-            Write-Host "HYPER PILOT VHDX Dismounted "
+            Log "HYPER PILOT VHDX Dismounted "
         }
         catch {
             Write-Warning "Failed to dismount VHDX after missing resources: $($_.Exception.Message)"
@@ -140,27 +182,27 @@ if (!(Test-Path -Path $VMResourcesPath)) {
 # Enumerate CSV files and copy them safely
 $csvFiles = Get-ChildItem -Path $VMResourcesPath -Filter "*.csv" -File -ErrorAction SilentlyContinue
 if ($csvFiles -and $csvFiles.Count -gt 0) {
-    Write-Host "CSV files found. Copying..."
+    Log "CSV files found. Copying..."
     try {
         foreach ($file in $csvFiles) {
-            Copy-Item -Path $file.FullName -Destination $LocalPath -Force -ErrorAction Stop
+            Copy-Item -Path $file.FullName -Destination $vmHashFolder -Force -ErrorAction Stop
         }
-        Write-Host "CSV files copied to $LocalPath"
+        Log "CSV files copied to $vmHashFolder"
     }
     catch {
-        Write-Warning "Failed to copy CSV files from $VMResourcesPath to $LocalPath : $($_.Exception.Message)"
+        Write-Warning "Failed to copy CSV files from $VMResourcesPath to $vmHashFolder : $($_.Exception.Message)"
     }
 }
 else {
-    Write-Host "No CSV Hash files found in $VMResourcesPath"
+    Log "No CSV Hash files found in $VMResourcesPath"
 }
 
 #dismount VHDX template
 if ($mounted -and $VHDPath) {
-    Write-Host "VHDX Dismounting.."
+    Log "VHDX Dismounting.."
     try {
         Dismount-VHD -Path $VHDPath -ErrorAction Stop
-        Write-Host "HYPER PILOT VHDX Dismounted "
+        Log "HYPER PILOT VHDX Dismounted "
     }
     catch {
         Write-Warning "Failed to dismount VHDX: $($_.Exception.Message)"
@@ -170,29 +212,39 @@ if ($mounted -and $VHDPath) {
 
 #check for vm network adapter and remove it to allow reuse of the adapter for autopilot testing
 $nicstatus = Get-VMNetworkAdapter -VMName $SelectedVM -ErrorAction SilentlyContinue
-if (! $nicstatus){Write-Host "No Network Adapter found on VM. skipping removal step."}
+if (! $nicstatus){Log "No Network Adapter found on VM. skipping removal step."}
 else{
     Remove-VMNetworkAdapter -VMName $SelectedVM -Confirm:$false
-    Write-Host "Network Adapter Removed from VM to allow reuse for Autopilot Testing."
+    Log "Network Adapter Removed from VM to allow reuse for Autopilot Testing."
 }
 
 #start the VM to create a checkpoint
 Start-VM -Name $SelectedVM
- do {
+ do {       
+            Log "Waiting for VM $SelectedVM to start..."
             $HyperVM = Get-VM -Name $SelectedVM
-            Start-Sleep -Seconds 90  ### Wait longer to ensure VM is fully started and back at OOBE. You can adjust this time as needed for your environment.
+             ### Wait longer to ensure VM is fully started and back at OOBE. You can adjust this time as needed for your environment.
+            Start-Sleep -Seconds 45
+            
         } while ($HyperVM.State -ne 'Running')
-Write-Host "VM ${SelectedVm.Name} is now running."
+Log "VM ${SelectedVm.Name} is now running."
 
-#try to create a checkpoint at startup without Netowrk Adapter
-try {
-    Checkpoint-VM -Name $SelectedVM -SnapshotName "PostFlight-Ready for Autopilot Testing" -ErrorAction Stop
-    Write-Host "Checkpoint 'PostFlight-Ready for Autopilot Testing' created for VM $SelectedVM."
+#try to create a checkpoint at startup without Network Adapter
+$checkpointName = 'PostFlight-Ready for Autopilot Testing'
+$existingCheckpoint = Get-VMSnapshot -VMName $SelectedVM -Name $checkpointName -ErrorAction SilentlyContinue
+if ($existingCheckpoint) {
+    Log "A checkpoint named '$checkpointName' already exists for VM $SelectedVM. Skipping creation."
 }
-catch {
-    Write-Warning   "Checkpoint creation failed for VM ${SelectedVM}: $($_.Exception.Message)"
-    Write-Warning   "You can create a checkpoint manually from Hyper-V Manager after the VM is shut down."
+else {
+    try {
+        Checkpoint-VM -Name $SelectedVM -SnapshotName $checkpointName -ErrorAction Stop
+        Log "Checkpoint '$checkpointName' created for VM $SelectedVM."
     }
+    catch {
+        Write-Warning "Checkpoint creation failed for VM $($SelectedVM): $($_.Exception.Message)"
+        Write-Warning "You can create a checkpoint manually from Hyper-V Manager after the VM is shut down."
+    }
+}
 
 Stop-VM -Name $SelectedVM -Force
  do {
@@ -200,11 +252,10 @@ Stop-VM -Name $SelectedVM -Force
             Start-Sleep -Seconds 5
         } while ($HyperVM.State -ne 'Off')
 
-Write-Host "VM $SelectedVM is now stopped."       
+Log "VM $SelectedVM is now stopped."       
 
-Write-Host "Congratulations — your Post-Flight Checks are complete" -ForegroundColor Green
+Log "Congratulations — your Post-Flight Checks are complete" 
 }
-
 #Check Failure Message. Check the HYPERPilot Installation Folders for VM Disks. 
 else{
 Write-Warning "HyperPilot VHDX Disks not found at: $VHDTemplates "

@@ -32,9 +32,9 @@
     Scott McDonnell
 
 .REVISION
-    1.0  2025-11-17  Initial comment
-    2.0  2026-07-06  Added logging and error handling for better user experience. Dynamically finds the HyperPilot VM folder path from config.json and prompts user to select a VM to process. 
-         
+    1.0  2025-11-17  Initial commmit to copy PreFlight scripts and hyperset.bat to the mounted VHDX image.
+    1.5  2026-06-06  Added logging and error handling for better user experience. Dynamically finds the HyperPilot VM folder path from config.json and prompts user to select a VM to process. 
+    2.0  2026-07-06  Add function to download tools from the web and Recreate Resource Folder if missing. Added checks for existing directories and files before copying.     
  #>
 #Requires -RunAsAdministrator
 
@@ -49,6 +49,83 @@ function log()
     Write-Output "$date - $message"
 }
 
+## Function to Copy Resource Files to the HyperPilot Template Disk
+Function PrepResource() {
+    Param(
+        [Parameter(Mandatory=$True)]
+        [string]$DestinationPath,
+        [Parameter(Mandatory=$false)]
+        [string]$VMSystem32,
+        [Parameter(Mandatory=$false)]
+        [string]$LocalPath
+    )
+
+    #Log "Copying PreFlight Scripts to $DestinationPath"
+    #Copy-Item -Path "$LocalPath\Scripts" -Destination $DestinationPath -Recurse -Force
+    #Log "PreFlight Scripts copied successfully to $DestinationPath"
+
+    #Log "Copying hyperset.bat to $VMSystem32"
+    #Copy-Item -Path "$LocalPath\staging\hyperset.bat" -Destination $VMSystem32 -Force
+    #Log "hyperset.bat copied successfully to $VMSystem32"
+
+    $PrepToolFolder = Join-Path -Path $DestinationPath -ChildPath "Microsoft-Win32-Content-Prep-Tool-master"
+    # Ensure destination folder exists
+    if (-not (Test-Path -Path $PrepToolFolder)) {
+        Log "Creating folder: $PrepToolFolder"
+        New-Item -Path $PrepToolFolder -ItemType Directory -Force | Out-Null
+    }
+
+    $preptoolURL = "https://raw.githubusercontent.com/microsoft/Microsoft-Win32-Content-Prep-Tool/master/IntuneWinAppUtil.exe"
+    $cmtraceURL = "https://patchmypc.com/cmtrace"
+    
+    Log "Downloading latest IntuneWinAppUtil.exe from GitHub..."
+    try {
+        Invoke-WebRequest -Uri $preptoolURL -OutFile $PrepToolFolder -UseBasicParsing
+        Log "Success: IntuneWinAppUtil.exe saved to $PrepToolFolder"
+ 
+        # Optional: show version if the tool supports -v (v1.8.2+)
+        try {
+            $version = & $PrepToolFolder\IntuneWinAppUtil.exe -v 2>$null
+             if ($version) {
+                    Log "Tool version: $version"
+         }
+         } catch {
+        # -v not supported on older versions; ignoring it silently
+        }
+        }
+    catch {
+        Write-Error "Failed to download IntuneWinAppUtil.exe: $_"
+        }
+
+    try {
+        Log "Downloading latest CMTrace from PatchMyPC..."
+        Invoke-WebRequest -Uri $cmtraceURL -OutFile (Join-Path -Path $DestinationPath -ChildPath "CMTrace.exe") -UseBasicParsing
+        Log "Success: CMTrace.exe saved to $DestinationPath"
+    }
+    catch {
+        Write-Error "Failed to download CMTrace.exe: $_"
+    }
+
+    try {
+        $pstoolsZipPath = Join-Path -Path $env:TEMP -ChildPath "PSTools.zip"
+        $pstoolsDestinationPath = Join-Path -Path $DestinationPath -ChildPath "PStools"
+
+        if (-not (Test-Path -Path $pstoolsDestinationPath)) {
+            New-Item -Path $pstoolsDestinationPath -ItemType Directory -Force | Out-Null
+        }
+
+        Log "Downloading latest PSTools to $pstoolsZipPath..."
+        Invoke-WebRequest -Uri "https://download.sysinternals.com/files/PSTools.zip" -OutFile $pstoolsZipPath -UseBasicParsing
+
+        Expand-Archive -Path $pstoolsZipPath -DestinationPath $pstoolsDestinationPath -Force
+        Remove-Item -Path $pstoolsZipPath -Force
+
+        Log "Success: PSTools extracted to $pstoolsDestinationPath"
+    }
+    catch {
+        Write-Error "Failed to download or extract PSTools: $_"
+    }
+}
 
 Log "Looking for HYPER PILOT Config"
 #$VHDTemplateFolder = "C:\HYPERPILOT\Templates" ## This was assumed to be default but we will now read the config.json file to get the path to the Templates folder
@@ -140,13 +217,17 @@ if (Test-Path -Path $VHDTemplateFolder) {
 
     $DestinationPath = "$($DriveLetter):\resources"
     $VMSystem32 = "$($DriveLetter):\windows\system32"
-
+    
     if (Test-Path -Path "$LocalPath\scripts") {
         Log "Source path found: $LocalPath"
         Log "Looking for $DestinationPath"
         if (-not (Test-Path -Path $DestinationPath)) {
             Log "Destination path not found. Creating directory..."
             New-Item -Path $DestinationPath -ItemType Directory | Out-Null
+            PrepResource `
+                -DestinationPath $DestinationPath `
+                -VMSystem32 $VMSystem32 `
+                -LocalPath $LocalPath
         }
         else {
             Log "Destination path found: $DestinationPath"

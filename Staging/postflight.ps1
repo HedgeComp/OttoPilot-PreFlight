@@ -35,9 +35,8 @@
     Scott McDonnell
 
 .REVISION
-    1.0  2025-11-17  Initial comment-based help added
-    2.0  2026-07-06  Added logging and error handling for better user experience. Dynamically finds the HyperPilot VM folder path from config.json and prompts user to select a VM to process. 
-         Added checks for existing checkpoints and network adapters.
+    1.0  2025-11-17  prompts user to select a VM to process. Pulls Hash CSV and removes network adapter from VM for Autopilot testing.
+    2.0  2026-07-06  Added logging and error handling. Now Dynamically finds HyperPilot VM folder from config.json. Added checks for existing checkpoints.
 
  #>
 #Requires -RunAsAdministrator

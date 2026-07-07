@@ -1,6 +1,10 @@
-Preflight Script - Staging Prerequisites
+##Staging Scripts
 
-Printable Quick-Start (One Page)
+##Preflight SCript
+- The script will prompt to select a VHDX if multiple templates are present.
+- The script copies `hyperset.bat` from `C:\HYPERPILOT\PreFlight\staging` to the VM's `Windows\System32`.
+- Verify you have sufficient disk and permission to mount and manipulate VHDX files.
+
 --------------------------------
 Follow these steps in order; run commands on the host as Administrator.
 
@@ -21,24 +25,7 @@ Set-Location 'C:\HyperPilot\PreFlight\Staging'
 - When completed testing: `Set-Location 'C:\resources'` then `.\scripts\decryptandprep.ps1`.
 - VM will decrypt and runn sysprep.
 
-4) Run Postflight script to collect CSVs and capture VM Snaphost that is Autopilot ready
-```powershell
-Set-Location 'C:\HyperPilot\PreFlight\Staging'
-.\postflight.bat
-```
-
-5) The following VM Autopilot configuration actions are now automated
-   	- CSVs are saved to Preflight folder, ie `C:\HyperPilot\PreFlight\VMHash` ( You can now upload your CSV securely to Intune Autopilot)
-   	- The Vnic is removed from a virtual Switch ( No internet on boot to prevent Autopilot caching)
-   	- VM is booted and waits until OOBE
-   	- VM Snapshot is created titled.
-   	- Vm is shutdown
-   	  
-6) Boot the VM and add a vswitch
-   
-7) Sign into your VM and test the full Autopilot process.
-  
-8) To repeat Autopilot testing, resotre the Snapshot and repeat steps '6' and '7' ... oooooh!!!
+ 
 
 
 Notes: Keep this page printed near the test workstation. If an error occurs, check PowerShell output and ensure Hyper-V is enabled and PowerShell is running elevated.
@@ -66,12 +53,9 @@ Set-Location 'Staging'
 .\preflight.ps1
 ```
 
-Notes
-- The script will prompt to select a VHDX if multiple templates are present.
-- The script copies `hyperset.bat` from `C:\HYPERPILOT\PreFlight\staging` to the VM's `Windows\System32`.
-- Verify you have sufficient disk and permission to mount and manipulate VHDX files.
 
-Postflight (collect VM Hashes)
+
+## Postflight Script (collect VM Hashes)
 
 This folder also contains `postflight.ps1`, which mounts a HyperPilot VM template
 VHDX, locates CSV-formatted VM hardware hash files in the VM's `resources` folder,
@@ -84,6 +68,27 @@ Prerequisites (postflight)
 - The VM template VHDX files must be located in: `C:\HyperPilot\Virtual Hard Disks`.
 - The VM image should already contain generated VM hash CSV files in the `resources` folder
 	(created by running the included `decryptandprep.ps1` / `hyperset.bat` inside the VM during OOBE).
+
+ 
+
+1) Run Postflight script to collect CSVs and capture VM Snaphost that is Autopilot ready
+```powershell
+Set-Location 'C:\HyperPilot\PreFlight\Staging'
+.\postflight.bat
+```
+
+2) The following VM Autopilot configuration actions are now automated
+   	- CSVs are saved to Preflight folder, ie `C:\HyperPilot\PreFlight\VMHash` ( You can now upload your CSV securely to Intune Autopilot)
+   	- The Vnic is removed from a virtual Switch ( No internet on boot to prevent Autopilot caching)
+   	- VM is booted and waits until OOBE
+   	- VM Snapshot is created titled.
+   	- Vm is shutdown
+   	  
+3) Boot the VM and add a vswitch
+   
+4) Sign into your VM and test the full Autopilot process.
+  
+5) To repeat Autopilot testing, resotre the Snapshot and repeat steps '3' and '4'
 
 Usage (postflight)
 1. Open an elevated PowerShell prompt.
@@ -102,7 +107,7 @@ Set-Location 'Staging'
 Notes (postflight)
 - The script will prompt to select a VHDX if multiple templates are present.
 - If CSV files are present under the VM's `resources` folder they will be copied to
-	`C:\HyperPilot\PreFlight\VMHash` (created if missing).
+	`..\HyperPilot\PreFlight\VMHash` (created if missing).
 - The script attempts to dismount VHDX files even after recoverable errors; check the
 	output for warnings if dismount fails.
 - After collecting the CSV files you can upload them to Autopilot or process them as needed.

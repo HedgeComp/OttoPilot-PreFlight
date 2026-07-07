@@ -1,6 +1,6 @@
-##Staging Scripts
+## Staging Scripts
 
-##Preflight SCript
+## Preflight SCript
 - The script will prompt to select a VHDX if multiple templates are present.
 - The script copies `hyperset.bat` from `C:\HYPERPILOT\PreFlight\staging` to the VM's `Windows\System32`.
 - Verify you have sufficient disk and permission to mount and manipulate VHDX files.

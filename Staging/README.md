@@ -1,4 +1,4 @@
-## Staging Scripts
+# Staging Scripts
 
 ## Preflight SCript
 - The script will prompt to select a VHDX if multiple templates are present.

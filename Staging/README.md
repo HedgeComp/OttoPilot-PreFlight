@@ -16,8 +16,9 @@ Set-Location 'C:\HyperPilot\PreFlight\Staging'
 
 3) Boot VM and run inside OOBE
 - Start the VM. At OOBE press `SHIFT+F10`.
-- Run: `hyperset.bat` (located in `C:\Windows\System32`).
-- In the PowerShell window: `Set-Location 'C:\resources'` then `.\scripts\decryptandprep.ps1`.
+- In CMD prompt type: `hyperset.bat` (should be found by Env PAth located in `C:\Windows\System32`).
+- Test your scripts or use the tools in 'C:\resources'.
+- When completed testing: `Set-Location 'C:\resources'` then `.\scripts\decryptandprep.ps1`.
 
 4) Capture VM (snapshot or save image)
 

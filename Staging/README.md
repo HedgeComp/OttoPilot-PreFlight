@@ -8,7 +8,7 @@ Follow these steps in order; run commands on the host as Administrator.
 - Extract `PreFlight` to your `HyperPilot` folder.
 - Example Templates in  `C:\HyperPilot\Templates` and helper scripts in `C:\HyperPilot\PreFlight\Scripts`.
 
-2) Run preflight to inject resources
+2) Run Preflight script to inject resources
 ```powershell
 Set-Location 'C:\HyperPilot\PreFlight\Staging'
 .\preflight.bat
@@ -19,16 +19,27 @@ Set-Location 'C:\HyperPilot\PreFlight\Staging'
 - In CMD prompt type: `hyperset.bat` (should be found by Env PAth located in `C:\Windows\System32`).
 - Test your scripts or use the tools in 'C:\resources'.
 - When completed testing: `Set-Location 'C:\resources'` then `.\scripts\decryptandprep.ps1`.
+- VM will decrypt and runn sysprep.
 
-4) Capture VM (snapshot or save image)
-
-5) Run postflight to collect CSVs
+4) Run Postflight script to collect CSVs and capture VM Snaphost that is Autopilot ready
 ```powershell
 Set-Location 'C:\HyperPilot\PreFlight\Staging'
 .\postflight.bat
 ```
 
-6) CSVs are saved to `C:\HyperPilot\PreFlight\VMHash` — upload securely to Autopilot.
+5) The following VM Autopilot configuration actions are now automated
+   	- CSVs are saved to Preflight folder, ie `C:\HyperPilot\PreFlight\VMHash` ( You can now upload your CSV securely to Intune Autopilot)
+   	- The Vnic is removed from a virtual Switch ( No internet on boot to prevent Autopilot caching)
+   	- VM is booted and waits until OOBE
+   	- VM Snapshot is created titled.
+   	- Vm is shutdown
+   	  
+6) Boot the VM and add a vswitch
+   
+7) Sign into your VM and test the full Autopilot process.
+  
+8) To repeat Autopilot testing, resotre the Snapshot and repeat steps '6' and '7' ... oooooh!!!
+
 
 Notes: Keep this page printed near the test workstation. If an error occurs, check PowerShell output and ensure Hyper-V is enabled and PowerShell is running elevated.
 

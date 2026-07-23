@@ -39,7 +39,7 @@
     2.0  2026-07-06  Added logging and error handling. Now Dynamically finds HyperPilot VM folder from config.json. Added checks for existing checkpoints.
 
  #>
-#Requires -RunAsAdministrator
+<# #Requires -RunAsAdministrator#>
 
 # log function
 function log()
@@ -106,6 +106,7 @@ $vmTable | Format-Table -AutoSize
 
 # Ask user to pick one
 Write-Host  -NoNewline -ForegroundColor Yellow "Enter the number of the HyperPilot VM to update: "
+
 $selection = Read-Host
 
 if (-not [int]::TryParse($selection, [ref]$null) -or

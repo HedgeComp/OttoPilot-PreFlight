@@ -81,7 +81,6 @@ if (-not $HyperConfig.PSObject.Properties.Name -contains "VMFolderPath" -or [str
 # Find the VMFolderPath from the config.json file
 $VMFolderPath = $HyperConfig.VMFolderPath.TrimEnd('\')
 $vmHashFolder = Join-Path -Path $VMFolderPath -ChildPath "PreFlight\VMHash"
-$VMFolderConfiguration = $null
 
 $AreWeHyped = Get-VM | Where-Object {
     $_.ConfigurationLocation -and

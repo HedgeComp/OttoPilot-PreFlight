@@ -56,7 +56,7 @@ param(
 )
 
 $AutoPilotCommunityPath = 'C:\Program Files\WindowsPowerShell\Scripts\get-windowsautopilotinfocommunity.ps1'
-function Check-NuGetProvider{
+function Test-NuGetProvider{
 	[CmdletBinding()]
 	param (
 		[version]$MinimumVersion = [version]'2.8.5.201'
@@ -81,7 +81,7 @@ function Check-NuGetProvider{
 
 
 Write-Host "Checking Nuget Provider Package State"
-Check-NuGetProvider 
+Test-NuGetProvider 
 Write-Host "Check for Autopilot Community Script for All Users"
 if (!(Test-Path $AutoPilotCommunityPath))
 {

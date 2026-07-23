@@ -140,6 +140,8 @@ else
     Write-Host "BitLocker decryption complete."
 }
 
+write-Host "clearing the Hyperset Autorun Key to prevent re-running the script on next boot"
+& reg delete "HKCU\Software\Microsoft\Command Processor" /v AutoRun /f
 
 # Run Sysprep
 $sysprepPath = "$env:SystemRoot\System32\Sysprep\Sysprep.exe"

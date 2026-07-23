@@ -49,6 +49,56 @@ function log()
     Write-Output "$date - $message"
 }
 
+function Set-HyperSet(){
+    param(
+        [Parameter(Mandatory=$True)]
+        [string]$DriveLetter,
+        [Parameter(Mandatory=$True)]
+        [string]$AutoRunPath
+    )
+
+    $ErrorActionPreference = 'Stop'
+    $tempHiveKey = "OFFLINE_SOFTWARE"
+    $hiveFullPath = "$DriveLetter`:\Windows\System32\config\SOFTWARE"
+ 
+    if (-not (Test-Path $hiveFullPath)) {
+        Write-Error "Could not find SOFTWARE hive at $hiveFullPath - is the VHDX mounted and is '$DriveLetter' correct?"
+        return
+    }
+ 
+    try {
+        Log "Loading offline hive from $hiveFullPath into HKLM\$tempHiveKey"
+        $loadResult = reg load "HKLM\$tempHiveKey" $hiveFullPath 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            throw "reg load failed: $loadResult"
+        }
+ 
+        $cmdProcessorKey = "HKLM\$tempHiveKey\Microsoft\Command Processor"
+        Log "Setting AutoRun to '$AutoRunPath'"
+        $addResult = reg add $cmdProcessorKey /v AutoRun /t REG_SZ /d $AutoRunPath /f 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            throw "reg add failed: $addResult"
+        }
+ 
+        Log "AutoRun set to '$AutoRunPath' in offline hive." 
+    }
+    catch {
+        Write-Error "Set-OfflineAutoRun failed: $_"
+    }
+    finally {
+        # Release any lingering handles before unload, then unload regardless of success/failure above
+        [gc]::Collect()
+        Start-Sleep -Milliseconds 500
+        $unloadResult = reg unload "HKLM\$tempHiveKey" 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            Write-Warning "reg unload failed - hive may still be mounted at HKLM\$tempHiveKey. Close regedit/other handles and retry: reg unload `"HKLM\$tempHiveKey`""
+        }
+        else {
+            Log "Hive unloaded cleanly."
+        }
+    }
+}
+
 ## Function to Copy Resource Files to the HyperPilot Template Disk
 Function PrepResource() {
     Param(
@@ -127,7 +177,6 @@ Function PrepResource() {
     }
 }
 
-Log "Looking for HYPER PILOT Config"
 #$VHDTemplateFolder = "C:\HYPERPILOT\Templates" ## This was assumed to be default but we will now read the config.json file to get the path to the Templates folder
 
 $HyperConfigPath = Join-Path -Path $env:APPDATA -ChildPath "HYPERPILOT\config.json"
@@ -139,6 +188,13 @@ if (-not (Test-Path -Path $HyperConfigPath)) {
 
 try {
     $HyperConfig = Get-Content -Path $HyperConfigPath -Raw | ConvertFrom-Json
+    #$HyperConfigFolder = Split-Path -Path $HyperConfigPath -Parent
+    $PreflightLogPath = Join-Path -Path $HyperConfig.VMFolderPath -ChildPath "PreFlight\Log"
+
+    if (-not (Test-Path -Path $PreflightLogPath)) {
+        New-Item -Path $PreflightLogPath -ItemType Directory -Force | Out-Null
+    }
+
 }
 catch {
     Write-Warning "Failed to parse config.json. Check that it contains valid JSON."
@@ -151,9 +207,12 @@ if (-not $HyperConfig.PSObject.Properties.Name -contains "VMFolderPath" -or [str
     exit 1
 }
 
+
+start-transcript -Path (Join-Path -Path $PreflightLogPath -ChildPath "PreFlight_$(Get-Date -Format 'yyyyMMdd_HHmmss').log") -Append
+Log "Found HYPER PILOT Config"
 # Find the VMFolderPath from the config.json file
 $VMFolderPath = $HyperConfig.VMFolderPath
-Log "Found VM Folder Path: $VMFolderPath" #-ForegroundColor Green
+Log "Found HyperPilot VM Folder Path: $VMFolderPath"
 $VHDTemplateFolder = Join-Path -Path $VMFolderPath -ChildPath "Templates"
 
 Log "Looking for HYPER PILOT Template Disks in: $VHDTemplateFolder"
@@ -184,7 +243,7 @@ if (Test-Path -Path $VHDTemplateFolder) {
 
         $selectedTemplate = $vmTable | Where-Object { $_.Number -eq [int]$selection } | Select-Object -First 1
         $VHDPath = $VHDTemplates[([int]$selection - 1)].FullName
-        log "Selected VM Template: $($selectedTemplate.'HyperPilot-VMName')"
+        log "Selected VM Template: $($selectedTemplate.'HyperPilot-Template')"
     }
     elseif ($VHDTemplates.Count -eq 1) {
         Log "Found VM Template $($VHDTemplates[0].BaseName)"
@@ -233,16 +292,18 @@ if (Test-Path -Path $VHDTemplateFolder) {
             Log "Destination path found: $DestinationPath"
         }
 
-        $filename = "hyperset.bat"
-        $filepath = "$LocalPath\staging\$filename"
+        $hypersetFile = "hyperset.bat"
+        $hypersetPath = "$LocalPath\staging\$hypersetFile"
 
-        if (Test-Path -Path $filepath -PathType Leaf) {
-            Log "The file '$FileName' exists at $FilePath."
-            Log "Copying file '$FileName' to $VMSystem32."
-            Copy-Item -Path $filepath -Destination $VMSystem32 -Recurse -Force
+        if (Test-Path -Path $hypersetPath -PathType Leaf) {
+            Log "The file '$hypersetFile' exists at $hypersetPath."
+            Log "Copying file '$hypersetFile' to $VMSystem32."
+            Copy-Item -Path $hypersetPath -Destination $VMSystem32 -Recurse -Force
+            Set-HyperSet -DriveLetter $DriveLetter -AutoRunPath "C:\Windows\System32\$hypersetFile"
+            Log "File '$hypersetFile' copied successfully to $VMSystem32 and AutoRun set."
         }
         else {
-            Log "The file '$FileName' was not found."
+            Log "The file '$hypersetFile' was not found."
         }
 
         Copy-Item -Path "$LocalPath\Scripts" -Destination $DestinationPath -Recurse -Force
@@ -255,7 +316,7 @@ if (Test-Path -Path $VHDTemplateFolder) {
     Log "VHDX Dismounting.."
     Dismount-VHD -Path $VHDPath
     Log "HyperPilot Template VHDX Dismounted"
-    Log "Congradulations your Pre-Flight Checks are complete!" #-ForegroundColor Green
+    Log "Congradulations your Pre-Flight Checks are complete!"
     Log "You can now engage your Otto-Pilot"
     Log "          __|__ "
     log "   --@--@--(_)--@--@--`n"
@@ -264,3 +325,4 @@ else {
     Write-Warning "HYPER PILOT VHDX Templates not found at: $VHDTemplateFolder"
     Write-Warning "Check your installation folders and try again"
 }
+stop-transcript

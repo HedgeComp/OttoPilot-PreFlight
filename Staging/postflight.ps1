@@ -219,7 +219,15 @@ else{
 }
 
 #start the VM to create a checkpoint
-Start-VM -Name $SelectedVM
+try{
+    Start-VM -Name $SelectedVM -ErrorAction Stop
+}
+catch{
+    Write-Warning "Failed to start VM $SelectedVM. Review the error and try again"
+    Write-Error  "$($_.Exception.Message)"
+    exit 1
+}
+
  do {       
             Log "Waiting for VM $SelectedVM to start..."
             $HyperVM = Get-VM -Name $SelectedVM

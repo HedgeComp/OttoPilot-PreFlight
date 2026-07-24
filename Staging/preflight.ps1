@@ -283,14 +283,16 @@ if (Test-Path -Path $VHDTemplateFolder) {
         if (-not (Test-Path -Path $DestinationPath)) {
             Log "Destination path not found. Creating directory..."
             New-Item -Path $DestinationPath -ItemType Directory | Out-Null
-            PrepResource `
-                -DestinationPath $DestinationPath `
-                -VMSystem32 $VMSystem32 `
-                -LocalPath $LocalPath
+            
         }
         else {
             Log "Destination path found: $DestinationPath"
         }
+        Log "Preparing resources for HyperPilot Template Disk..."
+        PrepResource `
+                -DestinationPath $DestinationPath `
+                -VMSystem32 $VMSystem32 `
+                -LocalPath $LocalPath
 
         $hypersetFile = "hyperset.bat"
         $hypersetPath = "$LocalPath\staging\$hypersetFile"
